@@ -1,46 +1,66 @@
-import io
 import streamlit as st
 from PIL import Image
+import io
 
-st.title("Image Compressor Pro")
+# Page setup - Wide layout (Desktop jaisa feel ke liye)
+st.set_page_config(page_title="Image Compressor Pro", layout="wide")
 
-# File Uploader
-uploaded_file = st.file_uploader("Image upload karein", type=["jpg", "jpeg", "png"])
+st.title("🖼️ Image Compressor Pro")
+
+# Sidebar - Controls (Desktop ke Left Panel ki tarah)
+with st.sidebar:
+    st.header("⚙️ Settings")
+    quality = st.slider("Quality", min_value=1, max_value=100, value=80)
+    
+    st.markdown("---")
+    st.subheader("Batch Options")
+    fast_mode = st.toggle("Fast mode")
+    
+    st.markdown("---")
+    st.caption("Appearance: Dark Mode (Default)")
+
+# Main Area Layout (Top Drag/Drop, Bottom Side-by-side comparison)
+uploaded_file = st.file_uploader("Drag & Drop an image here", type=["jpg", "jpeg", "png", "webp"])
 
 if uploaded_file is not None:
-    # Image Load Karein
+    # Original Image
     img = Image.open(uploaded_file)
-    
-    # RGBA / Palette mode ko RGB me convert karein (PNG / Transparency Fix)
+    original_bytes = uploaded_file.getvalue()
+    orig_size_kb = len(original_bytes) / 1024
+
+    # Compress Image
+    buffer = io.BytesIO()
+    # Convert RGBA to RGB for JPEG format
     if img.mode in ("RGBA", "P"):
-        img = img.convert("RGB")
-        
-    st.image(img, caption="Original Image", use_container_width=True)
+        img_conv = img.convert("RGB")
+    else:
+        img_conv = img
+    
+    img_conv.save(buffer, format="JPEG", quality=quality)
+    compressed_bytes = buffer.getvalue()
+    comp_size_kb = len(compressed_bytes) / 1024
 
-    # Compression Level Slider
-    quality = st.slider("Quality (Compress Level)", 10, 90, 70)
+    st.markdown("---")
 
-    if st.button("Compress Image"):
-        # Image Compress Logic
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=int(quality), optimize=True)
-        buffer.seek(0)
-        
-        # File Size Calculation (KB me)
-        original_bytes = uploaded_file.getvalue()
-        compressed_bytes = buffer.getvalue()
-        
-        original_size = len(original_bytes) / 1024
-        compressed_size = len(compressed_bytes) / 1024
-        
-        # Success Message
-        st.success(f"Compressed Successfully! Size: {original_size:.1f} KB ➔ {compressed_size:.1f} KB")
-        st.image(compressed_bytes, caption="Compressed Image", use_container_width=True)
+    # Side-by-Side Comparison (Desktop UI ki tarah)
+    col1, col2 = st.columns(2)
 
+    with col1:
+        st.subheader("Original")
+        st.image(img, use_container_width=True)
+        st.info(f"**Size:** {orig_size_kb:.2f} KB")
+
+    with col2:
+        st.subheader("Compressed")
+        st.image(buffer.getvalue(), use_container_width=True)
+        st.success(f"**Size:** {comp_size_kb:.2f} KB")
+        
         # Download Button
         st.download_button(
-            label="Download Compressed Image",
-            data=buffer.getvalue(),
+            label="💾 Download Compressed Image",
+            data=compressed_bytes,
             file_name=f"compressed_{uploaded_file.name}",
             mime="image/jpeg"
         )
+else:
+    st.info("Load an image to get started.")
