@@ -1,5 +1,7 @@
 import streamlit as st
+from starlette.applications import Starlette
 from PIL import Image
+import uvicorn
 import io
 
 # Page setup - Wide layout (Desktop jaisa feel ke liye)
